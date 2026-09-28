@@ -52,6 +52,12 @@ final readonly class CorsConfiguration
                     );
                 }
             }
+
+            if (in_array('*', $this->exposedHeaders, true)) {
+                throw new InvalidArgumentException(
+                    'Credentialed CORS requires explicit exposed response headers; "*" is not a wildcard.',
+                );
+            }
         }
 
         if ($allowPrivateNetwork) {
