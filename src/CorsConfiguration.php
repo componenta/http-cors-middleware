@@ -125,7 +125,7 @@ final readonly class CorsConfiguration
     public function allowsHeaders(array $headers): bool
     {
         foreach ($headers as $header) {
-            if (!self::validToken($header)) {
+            if (!is_string($header) || !self::validToken($header)) {
                 return false;
             }
 
