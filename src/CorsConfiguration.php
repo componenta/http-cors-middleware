@@ -21,10 +21,10 @@ final readonly class CorsConfiguration
     public array $exposedHeaders;
 
     /**
-     * @param list<string> $allowedOrigins
-     * @param list<string> $allowedMethods
-     * @param list<string> $allowedHeaders
-     * @param list<string> $exposedHeaders
+     * @param array<array-key, mixed> $allowedOrigins
+     * @param array<array-key, mixed> $allowedMethods
+     * @param array<array-key, mixed> $allowedHeaders
+     * @param array<array-key, mixed> $exposedHeaders
      */
     public function __construct(
         array $allowedOrigins = [],
@@ -120,7 +120,7 @@ final readonly class CorsConfiguration
     }
 
     /**
-     * @param list<string> $headers
+     * @param array<array-key, mixed> $headers
      */
     public function allowsHeaders(array $headers): bool
     {
@@ -141,7 +141,7 @@ final readonly class CorsConfiguration
     }
 
     /**
-     * @param list<string> $origins
+     * @param array<array-key, mixed> $origins
      * @return list<string>
      */
     private static function normalizeOrigins(array $origins): array
@@ -185,7 +185,7 @@ final readonly class CorsConfiguration
                 return null;
             }
 
-            $port = isset($matches[3]) && $matches[3] !== '' ? (int) $matches[3] : null;
+            $port = isset($matches[3]) ? (int) $matches[3] : null;
 
             if ($port !== null && ($port < 1 || $port > 65535)) {
                 return null;
@@ -204,7 +204,7 @@ final readonly class CorsConfiguration
     }
 
     /**
-     * @param list<string> $methods
+     * @param array<array-key, mixed> $methods
      * @return list<string>
      */
     private static function normalizeMethods(array $methods): array
@@ -227,7 +227,7 @@ final readonly class CorsConfiguration
     }
 
     /**
-     * @param list<string> $headers
+     * @param array<array-key, mixed> $headers
      * @return list<string>
      */
     private static function normalizeFieldNames(array $headers, string $label): array
