@@ -26,7 +26,11 @@ final readonly class Origin implements \Stringable
         if (
             $parsed === false
             || !isset($parsed['scheme'], $parsed['host'])
-            || isset($parsed['user'], $parsed['pass'], $parsed['path'], $parsed['query'], $parsed['fragment'])
+            || isset($parsed['user'])
+            || isset($parsed['pass'])
+            || isset($parsed['path'])
+            || isset($parsed['query'])
+            || isset($parsed['fragment'])
         ) {
             return null;
         }
