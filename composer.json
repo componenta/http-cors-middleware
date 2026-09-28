@@ -6,12 +6,35 @@
     "require": {
         "php": "^8.4",
         "psr/http-message": "^2.0",
-        "psr/http-server-middleware": "^1.0"
+        "psr/http-server-middleware": "^1.0",
+        "psr/http-factory": "^1.1"
     },
     "autoload": {
         "psr-4": {
             "Componenta\\Http\\Middleware\\Cors\\": "src/"
         }
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "require-dev": {
+        "nyholm/psr7": "^1.8",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Componenta\\Http\\Middleware\\Cors\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit tests",
+        "phpstan": "@php vendor/bin/phpstan analyse src tests --level=max --no-progress",
+        "check": [
+            "@phpstan",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "prefer-stable": true
 }
