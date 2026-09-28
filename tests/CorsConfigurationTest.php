@@ -35,6 +35,17 @@ final class CorsConfigurationTest extends TestCase
         }
     }
 
+    public function testCredentialedCorsRejectsExposeWildcard(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            exposedHeaders: ['*'],
+            allowCredentials: true,
+        );
+    }
+
     public function testPrivateNetworkAccessRequiresExactOrigin(): void
     {
         $this->expectException(InvalidArgumentException::class);
