@@ -49,10 +49,6 @@ final readonly class Origin implements \Stringable
 
         $port = $parsed['port'] ?? null;
 
-        if ($port !== null && ($port < 1 || $port > 65535)) {
-            return null;
-        }
-
         if (($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)) {
             $port = null;
         }
