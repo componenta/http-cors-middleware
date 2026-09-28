@@ -4,112 +4,273 @@ declare(strict_types=1);
 
 namespace Componenta\Http\Middleware\Cors;
 
-/**
- * Immutable CORS policy configuration.
- *
- * Encapsulates the full set of Cross-Origin Resource Sharing directives
- * as defined by the Fetch Standard (Living Standard) §3.2. Each property
- * maps directly to a CORS response header.
- *
- * Wildcard handling follows the Fetch Standard's credential-mode rules:
- *
- * - Without credentials: `*` is a true wildcard (any value matches).
- * - With credentials: `*` is treated as the literal string `"*"`,
- *   so specific values MUST be listed explicitly.
- *
- * This applies to allowedOrigins, allowedMethods, allowedHeaders,
- * and exposedHeaders uniformly.
- *
- * @see Fetch Standard §3.2          - CORS protocol
- * @see Fetch Standard §3.2.3        - HTTP responses (header definitions)
- * @see Fetch Standard §3.2.4        - CORS-preflight fetch
- * @see RFC 9110 §9.3.7              - OPTIONS method
- * @see W3C Private Network Access    - Access-Control-Allow-Private-Network
- */
-final class CorsConfiguration
+use InvalidArgumentException;
+
+final readonly class CorsConfiguration
 {
-    /**
-     * Normalized allowed origins (lowercase, standard ports stripped).
-     *
-     * @var list<string>
-     */
-    public readonly array $allowedOrigins;
+    /** @var list<string> */
+    public array $allowedOrigins;
+
+    /** @var list<string> */
+    public array $allowedMethods;
+
+    /** @var list<string> */
+    public array $allowedHeaders;
+
+    /** @var list<string> */
+    public array $exposedHeaders;
 
     /**
-     * Normalized allowed methods (uppercased).
-     *
-     * @var list<string>
-     */
-    public readonly array $allowedMethods;
-
-    /**
-     * Allowed request headers for preflight validation.
-     *
-     * Header comparison is case-insensitive per RFC 9110 §5.1.
-     * Use `['*']` to allow any header (without credentials) or to
-     * reflect requested headers back (with credentials).
-     *
-     * @var list<string>
-     */
-    public readonly array $allowedHeaders;
-
-    /**
-     * Response headers the browser may expose to client scripts.
-     *
-     * Maps to the `Access-Control-Expose-Headers` response header.
-     * CORS-safelisted response headers (Cache-Control, Content-Language,
-     * Content-Length, Content-Type, Expires, Last-Modified, Pragma) are
-     * always accessible and need not be listed.
-     *
-     * @var list<string>
-     */
-    public readonly array $exposedHeaders;
-
-    /**
-     * @param list<string> $allowedOrigins  Origins permitted to make cross-origin
-     *                                       requests. Use `['*']` for any origin.
-     *                                       Subdomain wildcards (`https://*.example.com`)
-     *                                       are supported for pattern matching.
-     * @param list<string> $allowedMethods  HTTP methods allowed in preflight.
-     *                                       Use `['*']` for any method.
-     * @param list<string> $allowedHeaders  Request headers allowed in preflight.
-     *                                       Use `['*']` for any header.
-     * @param list<string> $exposedHeaders  Response headers exposed to scripts.
-     *                                       Use `['*']` for all (without credentials only).
-     * @param int|null     $maxAge          Preflight cache duration in seconds.
-     *                                       Maps to `Access-Control-Max-Age`. null omits
-     *                                       the header (browser applies its default).
-     * @param bool         $allowCredentials Whether cookies, Authorization headers,
-     *                                       and TLS client certificates are permitted.
-     *                                       Maps to `Access-Control-Allow-Credentials`.
-     * @param bool         $allowPrivateNetwork Whether requests from public networks
-     *                                          to private/local networks are permitted.
-     *                                          Maps to `Access-Control-Allow-Private-Network`.
+     * @param list<string> $allowedOrigins
+     * @param list<string> $allowedMethods
+     * @param list<string> $allowedHeaders
+     * @param list<string> $exposedHeaders
      */
     public function __construct(
-        array $allowedOrigins = ['*'],
+        array $allowedOrigins = [],
         array $allowedMethods = ['GET', 'POST', 'HEAD', 'OPTIONS'],
         array $allowedHeaders = [],
         array $exposedHeaders = [],
-        public readonly ?int $maxAge = null,
-        public readonly bool $allowCredentials = false,
-        public readonly bool $allowPrivateNetwork = false,
+        public ?int $maxAge = null,
+        public bool $allowCredentials = false,
+        public bool $allowPrivateNetwork = false,
     ) {
         if ($maxAge !== null && $maxAge < 0) {
-            throw new \InvalidArgumentException(
-                'Access-Control-Max-Age must be non-negative',
-            );
+            throw new InvalidArgumentException('Access-Control-Max-Age must be non-negative.');
         }
 
-        if ($allowedOrigins === []) {
-            throw new \InvalidArgumentException(
-                'At least one allowed origin must be configured',
-            );
+        $this->allowedOrigins = self::normalizeOrigins($allowedOrigins);
+        $this->allowedMethods = self::normalizeMethods($allowedMethods);
+        $this->allowedHeaders = self::normalizeFieldNames($allowedHeaders, 'allowed request headers');
+        $this->exposedHeaders = self::normalizeFieldNames($exposedHeaders, 'exposed response headers');
+
+        if ($allowCredentials) {
+            foreach ($this->allowedOrigins as $origin) {
+                if ($origin === '*' || $origin === 'null' || str_contains($origin, '://*.')) {
+                    throw new InvalidArgumentException(
+                        'Credentialed CORS requires explicit non-opaque origins; wildcards and "null" are not allowed.',
+                    );
+                }
+            }
         }
 
-        $this->allowedOrigins = $allowedOrigins;
-        $this->allowedMethods = array_values(array_map('strtoupper', $allowedMethods));
-        $this->allowedHeaders = $allowedHeaders;
-        $this->exposedHeaders = $exposedHeaders;
+        if ($allowPrivateNetwork) {
+            foreach ($this->allowedOrigins as $origin) {
+                if ($origin === '*' || $origin === 'null' || str_contains($origin, '://*.')) {
+                    throw new InvalidArgumentException(
+                        'Private Network Access requires explicit non-opaque origins.',
+                    );
+                }
+            }
+        }
+    }
+
+    public function allowsOrigin(Origin $origin): bool
+    {
+        foreach ($this->allowedOrigins as $allowed) {
+            if ($allowed === '*') {
+                return !$origin->opaque;
+            }
+
+            if ($allowed === 'null') {
+                if ($origin->opaque) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (str_contains($allowed, '://*.')) {
+                if ($this->matchesSubdomainWildcard($origin, $allowed)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            $configured = Origin::parse($allowed);
+
+            if ($configured !== null && $configured->equals($origin)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasOriginWildcard(): bool
+    {
+        return in_array('*', $this->allowedOrigins, true);
+    }
+
+    public function allowsMethod(string $method): bool
+    {
+        if (!self::validToken($method)) {
+            return false;
+        }
+
+        return in_array('*', $this->allowedMethods, true)
+            || in_array(strtoupper($method), $this->allowedMethods, true);
+    }
+
+    /**
+     * @param list<string> $headers
+     */
+    public function allowsHeaders(array $headers): bool
+    {
+        foreach ($headers as $header) {
+            if (!self::validToken($header)) {
+                return false;
+            }
+
+            if (
+                !in_array('*', $this->allowedHeaders, true)
+                && !in_array(strtolower($header), $this->allowedHeaders, true)
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<string> $origins
+     * @return list<string>
+     */
+    private static function normalizeOrigins(array $origins): array
+    {
+        $normalized = [];
+
+        foreach ($origins as $origin) {
+            if (!is_string($origin) || $origin === '') {
+                throw new InvalidArgumentException('Allowed origins must be non-empty strings.');
+            }
+
+            $value = self::normalizeOriginPattern($origin);
+
+            if ($value === null) {
+                throw new InvalidArgumentException(sprintf('Invalid CORS origin pattern "%s".', $origin));
+            }
+
+            if (!in_array($value, $normalized, true)) {
+                $normalized[] = $value;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private static function normalizeOriginPattern(string $origin): ?string
+    {
+        if ($origin === '*' || $origin === 'null') {
+            return $origin;
+        }
+
+        if (preg_match(
+            '/^(https?):\/\/\*\.([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?$/D',
+            $origin,
+            $matches,
+        ) === 1) {
+            $scheme = strtolower($matches[1]);
+            $domain = strtolower($matches[2]);
+
+            if (filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
+                return null;
+            }
+
+            $port = isset($matches[3]) && $matches[3] !== '' ? (int) $matches[3] : null;
+
+            if ($port !== null && ($port < 1 || $port > 65535)) {
+                return null;
+            }
+
+            if (($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)) {
+                $port = null;
+            }
+
+            return $scheme . '://*.' . $domain . ($port === null ? '' : ':' . $port);
+        }
+
+        $parsed = Origin::parse($origin);
+
+        return $parsed === null ? null : (string) $parsed;
+    }
+
+    /**
+     * @param list<string> $methods
+     * @return list<string>
+     */
+    private static function normalizeMethods(array $methods): array
+    {
+        $normalized = [];
+
+        foreach ($methods as $method) {
+            if (!is_string($method) || ($method !== '*' && !self::validToken($method))) {
+                throw new InvalidArgumentException('Allowed CORS methods must be valid HTTP methods or "*".');
+            }
+
+            $method = $method === '*' ? '*' : strtoupper($method);
+
+            if (!in_array($method, $normalized, true)) {
+                $normalized[] = $method;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param list<string> $headers
+     * @return list<string>
+     */
+    private static function normalizeFieldNames(array $headers, string $label): array
+    {
+        $normalized = [];
+
+        foreach ($headers as $header) {
+            if (!is_string($header) || ($header !== '*' && !self::validToken($header))) {
+                throw new InvalidArgumentException(sprintf(
+                    'CORS %s must be valid HTTP field names or "*".',
+                    $label,
+                ));
+            }
+
+            $header = $header === '*' ? '*' : strtolower($header);
+
+            if (!in_array($header, $normalized, true)) {
+                $normalized[] = $header;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private static function validToken(string $value): bool
+    {
+        return $value !== ''
+            && preg_match("@^[!#$%&'*+.^_\x60|~0-9A-Za-z-]+$@D", $value) === 1;
+    }
+
+    private function matchesSubdomainWildcard(Origin $origin, string $pattern): bool
+    {
+        if ($origin->opaque) {
+            return false;
+        }
+
+        $separator = strpos($pattern, '://*.');
+
+        if ($separator === false) {
+            return false;
+        }
+
+        $scheme = substr($pattern, 0, $separator);
+        $base = substr($pattern, $separator + 5);
+        $originHost = $origin->hostWithPort();
+
+        return $origin->scheme() === $scheme
+            && $originHost !== null
+            && str_ends_with($originHost, '.' . $base)
+            && strlen($originHost) > strlen($base) + 1;
     }
 }
