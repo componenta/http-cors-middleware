@@ -110,7 +110,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
             $response = $response->withHeader('Access-Control-Allow-Credentials', 'true');
         }
 
-        if ($privateNetwork === 'true' && $this->config->allowPrivateNetwork) {
+        if ($privateNetwork === 'true') {
             $response = $response->withHeader('Access-Control-Allow-Private-Network', 'true');
         }
 
