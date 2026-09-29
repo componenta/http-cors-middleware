@@ -47,7 +47,7 @@ final readonly class CorsConfiguration
 
         if ($allowCredentials) {
             foreach ($this->allowedOrigins as $origin) {
-                if ($origin === '*' || str_contains($origin, '://*.')) {
+                if ($origin === '*') {
                     throw new InvalidArgumentException(
                         'Credentialed CORS requires explicit non-opaque origins; wildcards and "null" are not allowed.',
                     );
@@ -63,7 +63,7 @@ final readonly class CorsConfiguration
 
         if ($allowPrivateNetwork) {
             foreach ($this->allowedOrigins as $origin) {
-                if ($origin === '*' || str_contains($origin, '://*.')) {
+                if ($origin === '*') {
                     throw new InvalidArgumentException(
                         'Private Network Access requires explicit non-opaque origins.',
                     );
@@ -77,14 +77,6 @@ final readonly class CorsConfiguration
         foreach ($this->allowedOrigins as $allowed) {
             if ($allowed === '*') {
                 return !$origin->opaque;
-            }
-
-            if (str_contains($allowed, '://*.')) {
-                if ($this->matchesSubdomainWildcard($origin, $allowed)) {
-                    return true;
-                }
-
-                continue;
             }
 
             $configured = Origin::parse($allowed);
@@ -170,31 +162,6 @@ final readonly class CorsConfiguration
             return null;
         }
 
-        if (preg_match(
-            '/^(https?):\/\/\*\.([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?$/iD',
-            $origin,
-            $matches,
-        ) === 1) {
-            $scheme = strtolower($matches[1]);
-            $domain = strtolower($matches[2]);
-
-            if (filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
-                return null;
-            }
-
-            $port = isset($matches[3]) ? (int) $matches[3] : null;
-
-            if ($port !== null && ($port < 1 || $port > 65535)) {
-                return null;
-            }
-
-            if (($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)) {
-                $port = null;
-            }
-
-            return $scheme . '://*.' . $domain . ($port === null ? '' : ':' . $port);
-        }
-
         $parsed = Origin::parse($origin);
 
         return $parsed === null ? null : (string) $parsed;
@@ -251,27 +218,5 @@ final readonly class CorsConfiguration
     {
         return $value !== ''
             && preg_match("@^[!#$%&'*+.^_\x60|~0-9A-Za-z-]+$@D", $value) === 1;
-    }
-
-    private function matchesSubdomainWildcard(Origin $origin, string $pattern): bool
-    {
-        if ($origin->opaque) {
-            return false;
-        }
-
-        $separator = strpos($pattern, '://*.');
-
-        if ($separator === false) {
-            return false;
-        }
-
-        $scheme = substr($pattern, 0, $separator);
-        $base = substr($pattern, $separator + 5);
-        $originHost = $origin->hostWithPort();
-
-        return $origin->scheme() === $scheme
-            && $originHost !== null
-            && str_ends_with($originHost, '.' . $base)
-            && strlen($originHost) > strlen($base) + 1;
     }
 }
