@@ -124,26 +124,6 @@ final class CorsConfigurationTest extends TestCase
         self::assertFalse($config->allowsHeaders(["X-Bad\r\nInjected"]));
     }
 
-    #[DataProvider('wildcardOriginNormalizations')]
-    public function testWildcardOriginPatternNormalization(string $input, string $expected): void
-    {
-        $config = new CorsConfiguration(allowedOrigins: [$input]);
-
-        self::assertSame([$expected], $config->allowedOrigins);
-    }
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function wildcardOriginNormalizations(): iterable
-    {
-        yield 'https default port' => ['HTTPS://*.Example.COM:443', 'https://*.example.com'];
-        yield 'http default port' => ['HTTP://*.Example.COM:80', 'http://*.example.com'];
-        yield 'minimum explicit port' => ['https://*.example.com:1', 'https://*.example.com:1'];
-        yield 'maximum explicit port' => ['https://*.example.com:65535', 'https://*.example.com:65535'];
-        yield 'non-default port' => ['https://*.example.com:8443', 'https://*.example.com:8443'];
-    }
-
     #[DataProvider('invalidWildcardOriginPatterns')]
     public function testRejectsMalformedWildcardOriginPattern(string $origin): void
     {
@@ -157,6 +137,8 @@ final class CorsConfigurationTest extends TestCase
      */
     public static function invalidWildcardOriginPatterns(): iterable
     {
+        yield 'subdomain wildcard' => ['https://*.example.com'];
+        yield 'subdomain wildcard with port' => ['https://*.example.com:8443'];
         yield 'prefix garbage' => ['garbagehttps://*.example.com'];
         yield 'suffix garbage' => ['https://*.example.com/path'];
         yield 'port zero' => ['https://*.example.com:0'];
@@ -175,19 +157,19 @@ final class CorsConfigurationTest extends TestCase
         );
     }
 
-    public function testOriginPatternsAreNormalizedAndValidated(): void
+    public function testExactOriginPatternsAreNormalizedAndValidated(): void
     {
         $config = new CorsConfiguration(allowedOrigins: [
             'HTTPS://Example.COM:443',
-            'HTTPS://*.Sub.Example.COM:443',
+            'https://api.example.com:8443',
         ]);
 
         self::assertSame([
             'https://example.com',
-            'https://*.sub.example.com',
+            'https://api.example.com:8443',
         ], $config->allowedOrigins);
         self::assertTrue($config->allowsOrigin(Origin::parse('https://example.com') ?? self::fail()));
-        self::assertTrue($config->allowsOrigin(Origin::parse('https://a.sub.example.com') ?? self::fail()));
+        self::assertTrue($config->allowsOrigin(Origin::parse('https://api.example.com:8443') ?? self::fail()));
         self::assertFalse($config->allowsOrigin(Origin::parse('https://sub.example.com') ?? self::fail()));
     }
 
