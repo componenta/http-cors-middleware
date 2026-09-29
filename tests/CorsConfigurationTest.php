@@ -78,22 +78,32 @@ final class CorsConfigurationTest extends TestCase
         yield 'subdomain wildcard' => ['https://*.example.com'];
     }
 
-    public function testMethodMatchingIsCaseInsensitiveAndDefaultDeny(): void
+    public function testMethodMatchingIsCaseSensitiveAndDefaultDeny(): void
     {
-        $config = new CorsConfiguration(allowedMethods: ['POST']);
+        $config = new CorsConfiguration(allowedMethods: ['POST', 'X-Custom']);
 
-        self::assertTrue($config->allowsMethod('post'));
         self::assertTrue($config->allowsMethod('POST'));
+        self::assertTrue($config->allowsMethod('X-Custom'));
+        self::assertFalse($config->allowsMethod('post'));
+        self::assertFalse($config->allowsMethod('x-custom'));
         self::assertFalse($config->allowsMethod('GET'));
         self::assertFalse($config->allowsMethod("POST\r\nGET"));
     }
 
-    public function testMethodWildcardAllowsAnyValidMethodOnly(): void
+    public function testMethodWildcardAllowsAnyValidMethodWithoutChangingCase(): void
     {
         $config = new CorsConfiguration(allowedMethods: ['*']);
 
         self::assertTrue($config->allowsMethod('PATCH'));
+        self::assertTrue($config->allowsMethod('x-Custom'));
         self::assertFalse($config->allowsMethod('BAD METHOD'));
+    }
+
+    public function testConfiguredCustomMethodCaseIsPreserved(): void
+    {
+        $config = new CorsConfiguration(allowedMethods: ['x-Custom']);
+
+        self::assertSame(['x-Custom'], $config->allowedMethods);
     }
 
     public function testHeaderMatchingRejectsUnknownMalformedAndNonStringValues(): void
