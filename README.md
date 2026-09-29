@@ -34,10 +34,7 @@ $middleware = new CorsMiddleware($config, $responseFactory);
 
 Opaque `null` origins are rejected in every mode. Sandboxed documents and other opaque-origin contexts can deliberately produce `Origin: null`, so it is not a trustworthy allowlist identity.
 
-When `allowCredentials` is enabled, every allowed origin must be an explicit HTTP(S) origin. The configuration additionally rejects:
-
-- `*`;
-- subdomain wildcards such as `https://*.example.com`.
+When `allowCredentials` is enabled, every allowed origin must be an explicit HTTP(S) origin. The configuration additionally rejects `*`.
 
 This prevents an arbitrary origin from being reflected together with `Access-Control-Allow-Credentials: true`.
 
@@ -54,7 +51,7 @@ The wildcard intentionally does not match the opaque `null` origin, and `null` c
 
 ## Origin parsing
 
-Origins are parsed as serialized origins, not generic URLs. An origin must be exactly:
+Origins are parsed as serialized origins, not generic URLs, and allowlists are exact. An origin must be exactly:
 
 ```text
 http://host[:port]
@@ -63,13 +60,7 @@ https://host[:port]
 
 User information, paths, query strings, fragments, invalid hosts, and port zero are rejected. Scheme and host are normalized to lowercase and default ports 80/443 are removed.
 
-Subdomain wildcard patterns are supported only for non-credentialed policies:
-
-```text
-https://*.example.com
-```
-
-They match actual subdomains, not the apex domain. Avoid broad wildcard subdomains when any sibling hostname is outside the same security boundary.
+Allowed private origins must be exact HTTP(S) origins. Subdomain wildcard patterns such as `https://*.example.com` are rejected in every mode because a single dangling or less-trusted sibling hostname can turn a wildcard policy into unintended cross-origin access. Use explicit origins instead. The only wildcard is the full `*` policy for deliberately public, non-credentialed resources.
 
 ## Preflight
 

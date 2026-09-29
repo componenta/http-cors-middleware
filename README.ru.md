@@ -29,10 +29,7 @@ $config = new CorsConfiguration(
 
 Opaque origin `null` запрещён во всех режимах. Sandboxed documents и другие opaque-origin contexts могут намеренно сформировать `Origin: null`, поэтому такое значение нельзя считать надёжной allowlist-идентичностью.
 
-При `allowCredentials=true` разрешены только точные HTTP(S) origins. Дополнительно отклоняются:
-
-- `*`;
-- wildcard поддоменов вида `https://*.example.com`.
+При `allowCredentials=true` разрешены только точные HTTP(S) origins; дополнительно отклоняется `*`.
 
 Поэтому произвольный origin нельзя отразить одновременно с `Access-Control-Allow-Credentials: true`.
 
@@ -49,13 +46,7 @@ https://host[:port]
 
 Userinfo, path, query, fragment, некорректные hosts и порт 0 запрещены. Scheme/host приводятся к нижнему регистру, стандартные порты 80/443 удаляются.
 
-Wildcard поддоменов разрешён только без credentials:
-
-```text
-https://*.example.com
-```
-
-Он не включает apex-домен. Не используйте широкие wildcard-политики, если хотя бы один sibling subdomain находится вне того же security boundary.
+Для приватных ресурсов разрешены только точные HTTP(S) origins. Wildcard поддоменов вида `https://*.example.com` запрещён во всех режимах: dangling или менее доверенный sibling host может превратить такую policy в непреднамеренный cross-origin доступ. Используйте exact allowlist. Единственный wildcard — полный `*` для намеренно публичных ресурсов без credentials.
 
 ## Preflight
 

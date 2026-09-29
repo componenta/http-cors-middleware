@@ -124,8 +124,8 @@ final class CorsConfigurationTest extends TestCase
         self::assertFalse($config->allowsHeaders(["X-Bad\r\nInjected"]));
     }
 
-    #[DataProvider('invalidWildcardOriginPatterns')]
-    public function testRejectsMalformedWildcardOriginPattern(string $origin): void
+    #[DataProvider('invalidOriginPatterns')]
+    public function testRejectsWildcardAndMalformedOrigins(string $origin): void
     {
         $this->expectException(InvalidArgumentException::class);
 

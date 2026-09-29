@@ -138,10 +138,10 @@ final readonly class CorsConfiguration
                 throw new InvalidArgumentException('Allowed origins must be non-empty strings.');
             }
 
-            $value = self::normalizeOriginPattern($origin);
+            $value = self::normalizeOrigin($origin);
 
             if ($value === null) {
-                throw new InvalidArgumentException(sprintf('Invalid CORS origin pattern "%s".', $origin));
+                throw new InvalidArgumentException(sprintf('Invalid CORS origin "%s".', $origin));
             }
 
             if (!in_array($value, $normalized, true)) {
@@ -152,7 +152,7 @@ final readonly class CorsConfiguration
         return $normalized;
     }
 
-    private static function normalizeOriginPattern(string $origin): ?string
+    private static function normalizeOrigin(string $origin): ?string
     {
         if ($origin === '*') {
             return $origin;
