@@ -161,6 +161,25 @@ final class CorsMiddlewareTest extends TestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    public function testRejectedPreflightIsNotCacheable(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://trusted.example'],
+            allowedMethods: ['POST'],
+        ));
+
+        $response = $middleware->process(
+            (new ServerRequest('OPTIONS', 'https://api.example/data'))
+                ->withHeader('Origin', 'https://evil.example')
+                ->withHeader('Access-Control-Request-Method', 'POST'),
+            new CorsHandler(new Response(500)),
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
+        self::assertSame('no-cache', $response->getHeaderLine('Pragma'));
+    }
+
     public function testMalformedOriginIsRejectedOnPreflight(): void
     {
         $middleware = $this->middleware(new CorsConfiguration(allowedOrigins: ['*']));
