@@ -25,6 +25,7 @@ final readonly class CorsConfiguration
      * @param array<array-key, mixed> $allowedMethods
      * @param array<array-key, mixed> $allowedHeaders
      * @param array<array-key, mixed> $exposedHeaders
+     * @param bool $allowPrivateNetwork Legacy PNA-preflight compatibility only; current LNA is permission-based.
      */
     public function __construct(
         array $allowedOrigins = [],

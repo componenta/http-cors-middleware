@@ -32,13 +32,14 @@ $config = new CorsConfiguration(
 $middleware = new CorsMiddleware($config, $responseFactory);
 ```
 
-When `allowCredentials` is enabled, every allowed origin must be an explicit HTTP(S) origin. The configuration rejects:
+Opaque `null` origins are rejected in every mode. Sandboxed documents and other opaque-origin contexts can deliberately produce `Origin: null`, so it is not a trustworthy allowlist identity.
+
+When `allowCredentials` is enabled, every allowed origin must be an explicit HTTP(S) origin. The configuration additionally rejects:
 
 - `*`;
-- `null`;
 - subdomain wildcards such as `https://*.example.com`.
 
-This prevents an arbitrary or opaque origin from being reflected together with `Access-Control-Allow-Credentials: true`.
+This prevents an arbitrary origin from being reflected together with `Access-Control-Allow-Credentials: true`.
 
 Without credentials, `*` is supported:
 
@@ -49,7 +50,7 @@ new CorsConfiguration(
 );
 ```
 
-The wildcard intentionally does not match the opaque `null` origin. If an application truly needs a non-credentialed opaque origin, configure `'null'` explicitly.
+The wildcard intentionally does not match the opaque `null` origin, and `null` cannot be configured as an allowed origin.
 
 ## Origin parsing
 
@@ -102,9 +103,9 @@ new CorsConfiguration(
 
 Wildcard methods or request headers may still be configured intentionally. In credential mode they are reflected as the concrete requested method/header names rather than emitted as `*`.
 
-## Private Network Access
+## Legacy Private Network Access compatibility
 
-Private Network Access support is opt-in:
+`allowPrivateNetwork` implements the legacy Private Network Access (PNA) preflight headers for compatibility with clients that still send them:
 
 ```php
 new CorsConfiguration(
@@ -114,11 +115,9 @@ new CorsConfiguration(
 );
 ```
 
-PNA requires an explicit non-opaque origin. If a preflight sends `Access-Control-Request-Private-Network: true` while PNA is disabled, the middleware rejects it.
+Legacy PNA requires an explicit non-opaque origin. If a preflight sends `Access-Control-Request-Private-Network: true` while this compatibility mode is disabled, the middleware rejects it. Responses vary on `Access-Control-Request-Private-Network` whenever that request field can affect the result.
 
-Responses vary on `Access-Control-Request-Private-Network` whenever that request field can affect the result.
-
-Private Network Access is still an evolving browser specification; do not treat it as an authorization boundary.
+Current Local Network Access (LNA) replaces the old PNA preflight design with a browser permission model. Therefore `allowPrivateNetwork` is **not** a current LNA authorization or security boundary; application authorization and CSRF defenses remain mandatory.
 
 ## Response ownership
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Security
+- Opaque `null` origins can no longer be allowlisted, preventing unrelated sandboxed or privacy-sensitive contexts from sharing one trusted CORS identity.
+
+### Architecture
+- `allowPrivateNetwork` is documented as legacy PNA-preflight compatibility. Current Local Network Access uses a browser permission model and must not be treated as a CORS authorization boundary.
+
 ## v2.0.1
 
 Standards-correctness patch release.

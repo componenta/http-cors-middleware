@@ -27,15 +27,16 @@ $config = new CorsConfiguration(
 );
 ```
 
-При `allowCredentials=true` разрешены только точные HTTP(S) origins. Конфигурация отклоняет:
+Opaque origin `null` запрещён во всех режимах. Sandboxed documents и другие opaque-origin contexts могут намеренно сформировать `Origin: null`, поэтому такое значение нельзя считать надёжной allowlist-идентичностью.
+
+При `allowCredentials=true` разрешены только точные HTTP(S) origins. Дополнительно отклоняются:
 
 - `*`;
-- `null`;
 - wildcard поддоменов вида `https://*.example.com`.
 
-Поэтому произвольный или opaque origin нельзя отразить одновременно с `Access-Control-Allow-Credentials: true`.
+Поэтому произвольный origin нельзя отразить одновременно с `Access-Control-Allow-Credentials: true`.
 
-Без credentials допускается `*`. Он намеренно не включает opaque origin `null`; если он действительно нужен, его следует указать явно и без credentials.
+Без credentials допускается `*`. Он намеренно не включает opaque origin `null`, и `null` нельзя добавить в `allowedOrigins`.
 
 ## Разбор Origin
 
@@ -82,13 +83,11 @@ new CorsConfiguration(
 
 `Access-Control-Expose-Headers: *` с credentials запрещён, потому что Fetch трактует `*` в credential mode как literal value, а не wildcard.
 
-## Private Network Access
+## Совместимость с legacy Private Network Access
 
-PNA включается отдельно и требует точный non-opaque origin. Запрос `Access-Control-Request-Private-Network: true` при выключенном PNA получает 403.
+`allowPrivateNetwork` оставлен для совместимости со старым preflight-механизмом Private Network Access (PNA). Legacy PNA требует точный non-opaque origin. Запрос `Access-Control-Request-Private-Network: true` при выключенном compatibility mode получает 403, а ответ варьируется по этому заголовку, когда он влияет на результат.
 
-Когда PNA влияет на preflight, ответ добавляет `Vary: Access-Control-Request-Private-Network`.
-
-PNA остаётся развивающейся браузерной спецификацией и не должно использоваться как граница авторизации.
+Актуальный Local Network Access (LNA) заменяет старую PNA-модель на browser permission. Поэтому `allowPrivateNetwork` **не является** текущей LNA-авторизацией или security boundary; обычная авторизация и CSRF-защита остаются обязательными.
 
 ## Владение CORS headers
 
