@@ -62,6 +62,8 @@ User information, paths, query strings, fragments, invalid hosts, and port zero 
 
 Allowed private origins must be exact HTTP(S) origins. Subdomain wildcard patterns such as `https://*.example.com` are rejected in every mode because a single dangling or less-trusted sibling hostname can turn a wildcard policy into unintended cross-origin access. Use explicit origins instead. The only wildcard is the full `*` policy for deliberately public, non-credentialed resources.
 
+> **Upgrade note:** removing subdomain wildcard patterns is a breaking change and is intended for the next major release. Replace every `https://*.example.com`-style entry with an explicit list of trusted origins before upgrading.
+
 ## Preflight
 
 A CORS preflight is intercepted only when the request contains:

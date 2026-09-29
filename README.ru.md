@@ -48,6 +48,8 @@ Userinfo, path, query, fragment, некорректные hosts и порт 0 з
 
 Для приватных ресурсов разрешены только точные HTTP(S) origins. Wildcard поддоменов вида `https://*.example.com` запрещён во всех режимах: dangling или менее доверенный sibling host может превратить такую policy в непреднамеренный cross-origin доступ. Используйте exact allowlist. Единственный wildcard — полный `*` для намеренно публичных ресурсов без credentials.
 
+> **Примечание для обновления:** запрет wildcard-поддоменов является breaking change и предназначен для следующего major-релиза. Перед обновлением замените каждую запись вида `https://*.example.com` на явный список доверенных origins.
+
 ## Preflight
 
 Preflight перехватывается только для `OPTIONS` с `Origin` и `Access-Control-Request-Method`.

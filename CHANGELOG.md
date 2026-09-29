@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
+## Unreleased — breaking; next major release
 
 ### Security
 - Opaque `null` origins can no longer be allowlisted, preventing unrelated sandboxed or privacy-sensitive contexts from sharing one trusted CORS identity.
 - Subdomain wildcard origin patterns are rejected in every mode; private CORS policies now require exact origins, eliminating wildcard-subdomain takeover risk.
+
+### Compatibility
+- This is a breaking configuration change: deployments using entries such as `https://*.example.com` must replace them with explicit trusted origins before upgrading.
+- The full `*` wildcard remains available only for deliberately public, non-credentialed resources.
 
 ### Architecture
 - `allowPrivateNetwork` is documented as legacy PNA-preflight compatibility. Current Local Network Access uses a browser permission model and must not be treated as a CORS authorization boundary.
