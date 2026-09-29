@@ -41,6 +41,119 @@ final class CorsConfigurationTest extends TestCase
         yield 'subdomain wildcard' => ['https://*.example.com'];
     }
 
+    public function testDefaultMethodsMatchDocumentedSafeBaseline(): void
+    {
+        $config = new CorsConfiguration();
+
+        self::assertSame(['GET', 'POST', 'HEAD', 'OPTIONS'], $config->allowedMethods);
+    }
+
+    public function testMaxAgeAcceptsZeroAndRejectsNegativeValues(): void
+    {
+        self::assertSame(0, new CorsConfiguration(maxAge: 0)->maxAge);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        new CorsConfiguration(maxAge: -1);
+    }
+
+    #[DataProvider('privateNetworkUnsafeOrigins')]
+    public function testPrivateNetworkAccessRequiresExplicitOrigin(string $origin): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new CorsConfiguration(
+            allowedOrigins: [$origin],
+            allowPrivateNetwork: true,
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function privateNetworkUnsafeOrigins(): iterable
+    {
+        yield 'wildcard' => ['*'];
+        yield 'opaque null' => ['null'];
+        yield 'subdomain wildcard' => ['https://*.example.com'];
+    }
+
+    public function testMethodMatchingIsCaseInsensitiveAndDefaultDeny(): void
+    {
+        $config = new CorsConfiguration(allowedMethods: ['POST']);
+
+        self::assertTrue($config->allowsMethod('post'));
+        self::assertTrue($config->allowsMethod('POST'));
+        self::assertFalse($config->allowsMethod('GET'));
+        self::assertFalse($config->allowsMethod("POST\r\nGET"));
+    }
+
+    public function testMethodWildcardAllowsAnyValidMethodOnly(): void
+    {
+        $config = new CorsConfiguration(allowedMethods: ['*']);
+
+        self::assertTrue($config->allowsMethod('PATCH'));
+        self::assertFalse($config->allowsMethod('BAD METHOD'));
+    }
+
+    public function testHeaderMatchingRejectsUnknownMalformedAndNonStringValues(): void
+    {
+        $config = new CorsConfiguration(allowedHeaders: ['content-type']);
+
+        self::assertTrue($config->allowsHeaders(['Content-Type']));
+        self::assertFalse($config->allowsHeaders(['X-Other']));
+        self::assertFalse($config->allowsHeaders(['Bad Header']));
+        self::assertFalse($config->allowsHeaders([123]));
+    }
+
+    public function testHeaderWildcardAllowsAnyValidHeaderOnly(): void
+    {
+        $config = new CorsConfiguration(allowedHeaders: ['*']);
+
+        self::assertTrue($config->allowsHeaders(['X-Anything']));
+        self::assertFalse($config->allowsHeaders(["X-Bad\r\nInjected"]));
+    }
+
+    #[DataProvider('wildcardOriginNormalizations')]
+    public function testWildcardOriginPatternNormalization(string $input, string $expected): void
+    {
+        $config = new CorsConfiguration(allowedOrigins: [$input]);
+
+        self::assertSame([$expected], $config->allowedOrigins);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function wildcardOriginNormalizations(): iterable
+    {
+        yield 'https default port' => ['HTTPS://*.Example.COM:443', 'https://*.example.com'];
+        yield 'http default port' => ['HTTP://*.Example.COM:80', 'http://*.example.com'];
+        yield 'minimum explicit port' => ['https://*.example.com:1', 'https://*.example.com:1'];
+        yield 'maximum explicit port' => ['https://*.example.com:65535', 'https://*.example.com:65535'];
+        yield 'non-default port' => ['https://*.example.com:8443', 'https://*.example.com:8443'];
+    }
+
+    #[DataProvider('invalidWildcardOriginPatterns')]
+    public function testRejectsMalformedWildcardOriginPattern(string $origin): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new CorsConfiguration(allowedOrigins: [$origin]);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidWildcardOriginPatterns(): iterable
+    {
+        yield 'prefix garbage' => ['garbagehttps://*.example.com'];
+        yield 'suffix garbage' => ['https://*.example.com/path'];
+        yield 'port zero' => ['https://*.example.com:0'];
+        yield 'port above maximum' => ['https://*.example.com:65536'];
+        yield 'empty origin' => [''];
+    }
+
     public function testCredentialedCorsRejectsExposeWildcard(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -50,13 +163,6 @@ final class CorsConfigurationTest extends TestCase
             exposedHeaders: ['*'],
             allowCredentials: true,
         );
-    }
-
-    public function testPrivateNetworkAccessRequiresExactOrigin(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new CorsConfiguration(allowedOrigins: ['*'], allowPrivateNetwork: true);
     }
 
     public function testOriginPatternsAreNormalizedAndValidated(): void
