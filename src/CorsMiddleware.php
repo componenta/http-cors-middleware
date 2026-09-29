@@ -122,7 +122,12 @@ final readonly class CorsMiddleware implements MiddlewareInterface
      */
     private function preflightRejected(array $vary): ResponseInterface
     {
-        return $this->addVary($this->responseFactory->createResponse(403), ...$vary);
+        return $this->addVary(
+            $this->responseFactory->createResponse(403)
+                ->withHeader('Cache-Control', 'no-store')
+                ->withHeader('Pragma', 'no-cache'),
+            ...$vary,
+        );
     }
 
     private function addActualRequestHeaders(ResponseInterface $response, Origin $origin): ResponseInterface
