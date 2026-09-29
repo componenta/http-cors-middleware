@@ -123,6 +123,61 @@ final class CorsMiddlewareTest extends TestCase
         self::assertSame('600', $response->getHeaderLine('Access-Control-Max-Age'));
     }
 
+    public function testLowercaseOptionsIsNotTreatedAsCorsPreflight(): void
+    {
+        $handler = new CorsHandler(new Response(209));
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            allowedMethods: ['POST'],
+        ));
+
+        $response = $middleware->process(
+            (new ServerRequest('options', 'https://api.example/data'))
+                ->withHeader('Origin', 'https://app.example')
+                ->withHeader('Access-Control-Request-Method', 'POST'),
+            $handler,
+        );
+
+        self::assertSame(209, $response->getStatusCode());
+        self::assertSame(1, $handler->calls);
+    }
+
+    public function testPreflightMethodMatchingIsCaseSensitive(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            allowedMethods: ['POST'],
+        ));
+
+        $response = $middleware->process(
+            (new ServerRequest('OPTIONS', 'https://api.example/data'))
+                ->withHeader('Origin', 'https://app.example')
+                ->withHeader('Access-Control-Request-Method', 'post'),
+            new CorsHandler(new Response(500)),
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testCredentialedWildcardPreservesRequestedCustomMethodCase(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            allowedMethods: ['*'],
+            allowCredentials: true,
+        ));
+
+        $response = $middleware->process(
+            (new ServerRequest('OPTIONS', 'https://api.example/data'))
+                ->withHeader('Origin', 'https://app.example')
+                ->withHeader('Access-Control-Request-Method', 'x-Custom'),
+            new CorsHandler(new Response(500)),
+        );
+
+        self::assertSame(204, $response->getStatusCode());
+        self::assertSame('x-Custom', $response->getHeaderLine('Access-Control-Allow-Methods'));
+    }
+
     public function testAuthorizationIsExplicitWhenAllowedHeadersUsesWildcard(): void
     {
         $middleware = $this->middleware(new CorsConfiguration(
