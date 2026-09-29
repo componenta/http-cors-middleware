@@ -60,7 +60,7 @@ https://*.example.com
 
 Preflight перехватывается только для `OPTIONS` с `Origin` и `Access-Control-Request-Method`.
 
-Requested method и имена headers проверяются по HTTP token/field-name grammar. Malformed или запрещённый preflight получает 403 и не передаётся application handler.
+Requested method и имена headers проверяются по HTTP token/field-name grammar. Сопоставление HTTP methods регистрозависимое по RFC 9110; регистр custom method сохраняется без нормализации. Malformed или запрещённый preflight получает 403 и не передаётся application handler.
 
 При успехе возвращается 204 с CORS headers.
 
