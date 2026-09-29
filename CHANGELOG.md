@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — breaking; next major release
+## v3.0.0
 
 ### Security
 - Opaque `null` origins can no longer be allowlisted, preventing unrelated sandboxed or privacy-sensitive contexts from sharing one trusted CORS identity.
@@ -12,6 +12,13 @@
 
 ### Architecture
 - `allowPrivateNetwork` is documented as legacy PNA-preflight compatibility. Current Local Network Access uses a browser permission model and must not be treated as a CORS authorization boundary.
+
+### Verification
+- PHP 8.4 and 8.5, lowest and highest dependency sets.
+- Composer strict validation and security audit.
+- PHPStan level max over source and tests.
+- Strict PHPUnit protocol/security regression suite.
+- Infection mutation testing.
 
 ## v2.0.1
 
