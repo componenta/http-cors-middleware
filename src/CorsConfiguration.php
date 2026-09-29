@@ -46,7 +46,7 @@ final readonly class CorsConfiguration
 
         if ($allowCredentials) {
             foreach ($this->allowedOrigins as $origin) {
-                if ($origin === '*' || $origin === 'null' || str_contains($origin, '://*.')) {
+                if ($origin === '*' || str_contains($origin, '://*.')) {
                     throw new InvalidArgumentException(
                         'Credentialed CORS requires explicit non-opaque origins; wildcards and "null" are not allowed.',
                     );
@@ -62,7 +62,7 @@ final readonly class CorsConfiguration
 
         if ($allowPrivateNetwork) {
             foreach ($this->allowedOrigins as $origin) {
-                if ($origin === '*' || $origin === 'null' || str_contains($origin, '://*.')) {
+                if ($origin === '*' || str_contains($origin, '://*.')) {
                     throw new InvalidArgumentException(
                         'Private Network Access requires explicit non-opaque origins.',
                     );
@@ -76,14 +76,6 @@ final readonly class CorsConfiguration
         foreach ($this->allowedOrigins as $allowed) {
             if ($allowed === '*') {
                 return !$origin->opaque;
-            }
-
-            if ($allowed === 'null') {
-                if ($origin->opaque) {
-                    return true;
-                }
-
-                continue;
             }
 
             if (str_contains($allowed, '://*.')) {
@@ -169,8 +161,12 @@ final readonly class CorsConfiguration
 
     private static function normalizeOriginPattern(string $origin): ?string
     {
-        if ($origin === '*' || $origin === 'null') {
+        if ($origin === '*') {
             return $origin;
+        }
+
+        if ($origin === 'null') {
+            return null;
         }
 
         if (preg_match(
