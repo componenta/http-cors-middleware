@@ -84,17 +84,11 @@ final class CorsMiddlewareTest extends TestCase
         self::assertFalse($response->hasHeader('Access-Control-Allow-Origin'));
     }
 
-    public function testExplicitNonCredentialedNullOriginCanBeAllowed(): void
+    public function testOpaqueNullOriginCannotBeAllowlisted(): void
     {
-        $middleware = $this->middleware(new CorsConfiguration(allowedOrigins: ['null']));
+        $this->expectException(\InvalidArgumentException::class);
 
-        $response = $middleware->process(
-            (new ServerRequest('GET', 'https://api.example/data'))
-                ->withHeader('Origin', 'null'),
-            new CorsHandler(new Response(200)),
-        );
-
-        self::assertSame('null', $response->getHeaderLine('Access-Control-Allow-Origin'));
+        new CorsConfiguration(allowedOrigins: ['null']);
     }
 
     public function testSuccessfulPreflightIsNotForwardedToHandler(): void
