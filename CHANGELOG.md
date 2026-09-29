@@ -15,7 +15,7 @@ Standards-correctness patch release.
 - Composer strict validation and security audit.
 - PHPStan level max over source and tests.
 - Strict PHPUnit configuration.
-- Infection mutation coverage remains 100% with covered-code MSI above the required 80%.
+- Infection mutation coverage 100%, covered-code MSI 86%.
 
 ## v2.0.0
 
