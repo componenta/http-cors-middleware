@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Componenta\Http\Middleware\Cors\Tests;
 
 use Componenta\Http\Middleware\Cors\Origin;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class OriginTest extends TestCase
@@ -27,31 +28,28 @@ final class OriginTest extends TestCase
         self::assertTrue($origin->opaque);
     }
 
-    public function testRejectsUriComponentsThatAreNotPartOfSerializedOrigin(): void
+    #[DataProvider('invalidSerializedOrigins')]
+    public function testRejectsInvalidSerializedOrigin(string $value): void
     {
-        foreach ([
-            'https://example.com/',
-            'https://example.com/path',
-            'https://example.com?query=1',
-            'https://example.com#fragment',
-            'https://user@example.com',
-            'https://user:pass@example.com',
-        ] as $value) {
-            self::assertNull(Origin::parse($value), $value);
-        }
+        self::assertNull(Origin::parse($value));
     }
 
-    public function testRejectsUnsupportedOrMalformedOrigins(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidSerializedOrigins(): iterable
     {
-        foreach ([
-            '',
-            ' null',
-            'file://example.com',
-            'https://',
-            'https://exa mple.com',
-            'https://example.com:0',
-        ] as $value) {
-            self::assertNull(Origin::parse($value), $value);
-        }
+        yield 'trailing slash' => ['https://example.com/'];
+        yield 'path' => ['https://example.com/path'];
+        yield 'query' => ['https://example.com?query=1'];
+        yield 'fragment' => ['https://example.com#fragment'];
+        yield 'userinfo' => ['https://user@example.com'];
+        yield 'userinfo with password' => ['https://user:pass@example.com'];
+        yield 'empty' => [''];
+        yield 'leading whitespace' => [' null'];
+        yield 'unsupported scheme' => ['file://example.com'];
+        yield 'missing host' => ['https://'];
+        yield 'whitespace in host' => ['https://exa mple.com'];
+        yield 'zero port' => ['https://example.com:0'];
     }
 }
