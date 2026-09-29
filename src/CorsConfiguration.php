@@ -174,7 +174,7 @@ final readonly class CorsConfiguration
         }
 
         if (preg_match(
-            '/^(https?):\/\/\*\.([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?$/D',
+            '/^(https?):\/\/\*\.([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?$/iD',
             $origin,
             $matches,
         ) === 1) {
