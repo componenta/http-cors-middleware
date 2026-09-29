@@ -135,7 +135,7 @@ final class CorsConfigurationTest extends TestCase
     /**
      * @return iterable<string, array{string}>
      */
-    public static function invalidWildcardOriginPatterns(): iterable
+    public static function invalidOriginPatterns(): iterable
     {
         yield 'subdomain wildcard' => ['https://*.example.com'];
         yield 'subdomain wildcard with port' => ['https://*.example.com:8443'];
