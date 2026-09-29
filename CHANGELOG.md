@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.0.1
+
+Standards-correctness patch release.
+
+### Fixed
+- HTTP and CORS method matching is now case-sensitive as required by RFC 9110.
+- Configured custom methods preserve their exact spelling.
+- Lowercase `options` is no longer treated as the standard `OPTIONS` CORS preflight method.
+- Credentialed wildcard method responses preserve the exact requested method token.
+
+### Verification
+- PHP 8.4 and 8.5, lowest and highest dependency sets.
+- Composer strict validation and security audit.
+- PHPStan level max over source and tests.
+- Strict PHPUnit configuration.
+- Infection mutation coverage remains 100% with covered-code MSI above the required 80%.
+
 ## v2.0.0
 
 Breaking security-focused release.
