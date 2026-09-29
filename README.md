@@ -78,7 +78,7 @@ A CORS preflight is intercepted only when the request contains:
 - `Origin`;
 - `Access-Control-Request-Method`.
 
-The requested method and header names are validated using HTTP token/field-name grammar. Malformed or disallowed requests receive 403 and are not forwarded to the application.
+The requested method and header names are validated using HTTP token/field-name grammar. HTTP method matching is case-sensitive as required by RFC 9110; custom method spelling is preserved exactly. Malformed or disallowed requests receive 403 and are not forwarded to the application.
 
 Successful preflights receive 204 plus the configured CORS response fields.
 
