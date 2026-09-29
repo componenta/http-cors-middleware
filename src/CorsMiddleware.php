@@ -51,7 +51,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
 
     private function isPreflightRequest(ServerRequestInterface $request): bool
     {
-        return strtoupper($request->getMethod()) === 'OPTIONS'
+        return $request->getMethod() === 'OPTIONS'
             && $request->getHeaderLine('Origin') !== ''
             && $request->getHeaderLine('Access-Control-Request-Method') !== '';
     }
@@ -159,7 +159,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
     private function resolveAllowMethods(string $requestedMethod): string
     {
         if (in_array('*', $this->config->allowedMethods, true)) {
-            return $this->config->allowCredentials ? strtoupper($requestedMethod) : '*';
+            return $this->config->allowCredentials ? $requestedMethod : '*';
         }
 
         return implode(', ', $this->config->allowedMethods);
