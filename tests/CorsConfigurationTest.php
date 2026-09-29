@@ -57,7 +57,7 @@ final class CorsConfigurationTest extends TestCase
     {
         $config = new CorsConfiguration(allowedOrigins: [
             'HTTPS://Example.COM:443',
-            'https://*.sub.example.com:443',
+            'HTTPS://*.Sub.Example.COM:443',
         ]);
 
         self::assertSame([
