@@ -116,7 +116,7 @@ final readonly class CorsConfiguration
         }
 
         return in_array('*', $this->allowedMethods, true)
-            || in_array(strtoupper($method), $this->allowedMethods, true);
+            || in_array($method, $this->allowedMethods, true);
     }
 
     /**
@@ -215,8 +215,6 @@ final readonly class CorsConfiguration
             if (!is_string($method) || ($method !== '*' && !self::validToken($method))) {
                 throw new InvalidArgumentException('Allowed CORS methods must be valid HTTP methods or "*".');
             }
-
-            $method = $method === '*' ? '*' : strtoupper($method);
 
             if (!in_array($method, $normalized, true)) {
                 $normalized[] = $method;
