@@ -278,6 +278,43 @@ final class CorsMiddlewareTest extends TestCase
         }
     }
 
+    public function testResponseFactoryCannotGrantAdditionalCorsPermissions(): void
+    {
+        $factory = new class implements \Psr\Http\Message\ResponseFactoryInterface {
+            public function createResponse(int $code = 200, string $reasonPhrase = ''): ResponseInterface
+            {
+                return new Response($code, [
+                    'Access-Control-Allow-Origin' => '*',
+                    'Access-Control-Allow-Credentials' => 'true',
+                    'Access-Control-Allow-Headers' => '*',
+                    'Access-Control-Allow-Private-Network' => 'true',
+                    'Access-Control-Expose-Headers' => '*',
+                    'Access-Control-Max-Age' => '999999',
+                    'Vary' => 'Accept-Encoding',
+                ]);
+            }
+        };
+        $middleware = new CorsMiddleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'], allowedMethods: ['POST'],
+        ), $factory);
+        $request = (new ServerRequest('OPTIONS', 'https://api.example/data'))
+            ->withHeader('Origin', 'https://app.example')
+            ->withHeader('Access-Control-Request-Method', 'POST');
+        $handler = new CorsHandler(new Response(500));
+        $response = $middleware->process($request, $handler);
+        self::assertSame(204, $response->getStatusCode());
+        self::assertSame('https://app.example', $response->getHeaderLine('Access-Control-Allow-Origin'));
+        foreach (['Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Private-Network', 'Access-Control-Expose-Headers', 'Access-Control-Max-Age'] as $name) {
+            self::assertFalse($response->hasHeader($name));
+        }
+        self::assertStringContainsString('Accept-Encoding', $response->getHeaderLine('Vary'));
+        $rejected = $middleware->process($request->withHeader('Origin', 'https://other.example'), $handler);
+        self::assertSame(403, $rejected->getStatusCode());
+        self::assertFalse($rejected->hasHeader('Access-Control-Allow-Origin'));
+        self::assertFalse($rejected->hasHeader('Access-Control-Allow-Credentials'));
+        self::assertSame(0, $handler->calls);
+    }
+
     public function testMalformedOriginIsRejectedOnPreflight(): void
     {
         $middleware = $this->middleware(new CorsConfiguration(allowedOrigins: ['*']));
