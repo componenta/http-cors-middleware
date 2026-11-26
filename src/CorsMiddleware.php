@@ -59,12 +59,8 @@ final readonly class CorsMiddleware implements MiddlewareInterface
 
     private function handlePreflight(ServerRequestInterface $request): ResponseInterface
     {
-        $vary = ['Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'];
+        $vary = ['Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers', 'Access-Control-Request-Private-Network'];
         $privateNetwork = $request->getHeaderLine('Access-Control-Request-Private-Network');
-
-        if ($this->config->allowPrivateNetwork || $request->hasHeader('Access-Control-Request-Private-Network')) {
-            $vary[] = 'Access-Control-Request-Private-Network';
-        }
 
         $origin = Origin::parse($request->getHeaderLine('Origin'));
 
@@ -92,7 +88,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
             }
         }
 
-        $response = $this->responseFactory->createResponse(204)
+        $response = $this->stripControlledHeaders($this->responseFactory->createResponse(204))
             ->withHeader('Access-Control-Allow-Origin', $this->resolveAllowOrigin($request->getHeaderLine('Origin')))
             ->withHeader('Access-Control-Allow-Methods', $this->resolveAllowMethods($requestedMethod));
 
@@ -124,7 +120,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
     private function preflightRejected(array $vary): ResponseInterface
     {
         return $this->addVary(
-            $this->responseFactory->createResponse(403)
+            $this->stripControlledHeaders($this->responseFactory->createResponse(403))
                 ->withHeader('Cache-Control', 'no-store')
                 ->withHeader('Pragma', 'no-cache'),
             ...$vary,
@@ -239,7 +235,9 @@ final readonly class CorsMiddleware implements MiddlewareInterface
     private function stripControlledHeaders(ResponseInterface $response): ResponseInterface
     {
         foreach (self::CONTROLLED_RESPONSE_HEADERS as $header) {
-            $response = $response->withoutHeader($header);
+            if ($response->hasHeader($header)) {
+                $response = $response->withoutHeader($header);
+            }
         }
 
         return $response;
