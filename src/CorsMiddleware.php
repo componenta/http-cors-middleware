@@ -41,7 +41,8 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         if ($originHeader !== '') {
             $origin = Origin::parse($originHeader);
 
-            if ($origin !== null && $this->config->allowsOrigin($origin)) {
+            if ($origin !== null && $this->config->allowsOrigin($origin)
+                && $this->config->allowsMethod($request->getMethod())) {
                 $response = $this->addActualRequestHeaders($response, $origin);
             }
         }

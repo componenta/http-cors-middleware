@@ -152,3 +152,5 @@ The repository quality workflow verifies:
 ## Standards
 
 The normative CORS processing model is defined by the WHATWG Fetch Living Standard. HTTP field syntax and cache semantics follow RFC 9110. Origin semantics are based on RFC 6454.
+
+The configured method allowlist applies to response exposure on actual requests as well as preflight. Disallowed simple requests still reach the application; their responses omit CORS permission headers. Use application authentication, authorization and CSRF protection independently.

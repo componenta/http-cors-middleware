@@ -57,6 +57,21 @@ final class CorsMiddlewareTest extends TestCase
         self::assertFalse($response->hasHeader('Access-Control-Expose-Headers'));
     }
 
+    public function testActualMethodOutsidePolicyDoesNotExposeResponse(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            allowedMethods: ['PUT'],
+        ));
+        $handler = $this->handler();
+        $response = $middleware->process(
+            (new ServerRequest('GET', 'https://api.example/data'))->withHeader('Origin', 'https://app.example'),
+            $handler,
+        );
+        self::assertFalse($response->hasHeader('Access-Control-Allow-Origin'));
+        self::assertSame(1, $handler->calls);
+    }
+
     public function testWildcardOriginWithoutCredentialsUsesWildcardResponse(): void
     {
         $middleware = $this->middleware(new CorsConfiguration(allowedOrigins: ['*']));
