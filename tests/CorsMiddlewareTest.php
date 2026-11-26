@@ -63,13 +63,26 @@ final class CorsMiddlewareTest extends TestCase
             allowedOrigins: ['https://app.example'],
             allowedMethods: ['PUT'],
         ));
-        $handler = $this->handler();
+        $handler = new CorsHandler(new Response(200));
         $response = $middleware->process(
             (new ServerRequest('GET', 'https://api.example/data'))->withHeader('Origin', 'https://app.example'),
             $handler,
         );
         self::assertFalse($response->hasHeader('Access-Control-Allow-Origin'));
         self::assertSame(1, $handler->calls);
+    }
+
+    public function testEquivalentIpv6OriginIsAllowedAndRequestOriginIsReflected(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://[2001:0db8:0:0:0:0:0:1]'],
+            allowCredentials: true,
+        ));
+        $response = $middleware->process(
+            (new ServerRequest('GET', 'https://api.example/data'))->withHeader('Origin', 'https://[2001:db8::1]'),
+            new CorsHandler(new Response(200)),
+        );
+        self::assertSame('https://[2001:db8::1]', $response->getHeaderLine('Access-Control-Allow-Origin'));
     }
 
     public function testWildcardOriginWithoutCredentialsUsesWildcardResponse(): void

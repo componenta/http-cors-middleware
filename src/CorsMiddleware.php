@@ -43,7 +43,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
 
             if ($origin !== null && $this->config->allowsOrigin($origin)
                 && $this->config->allowsMethod($request->getMethod())) {
-                $response = $this->addActualRequestHeaders($response, $origin);
+                $response = $this->addActualRequestHeaders($response, $originHeader);
             }
         }
 
@@ -93,7 +93,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         }
 
         $response = $this->responseFactory->createResponse(204)
-            ->withHeader('Access-Control-Allow-Origin', $this->resolveAllowOrigin($origin))
+            ->withHeader('Access-Control-Allow-Origin', $this->resolveAllowOrigin($request->getHeaderLine('Origin')))
             ->withHeader('Access-Control-Allow-Methods', $this->resolveAllowMethods($requestedMethod));
 
         if ($requestedHeaders !== []) {
@@ -131,7 +131,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         );
     }
 
-    private function addActualRequestHeaders(ResponseInterface $response, Origin $origin): ResponseInterface
+    private function addActualRequestHeaders(ResponseInterface $response, string $origin): ResponseInterface
     {
         $response = $response->withHeader('Access-Control-Allow-Origin', $this->resolveAllowOrigin($origin));
 
@@ -148,13 +148,13 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         return $response;
     }
 
-    private function resolveAllowOrigin(Origin $origin): string
+    private function resolveAllowOrigin(string $origin): string
     {
         if (!$this->config->allowCredentials && $this->config->hasOriginWildcard()) {
             return '*';
         }
 
-        return (string) $origin;
+        return $origin;
     }
 
     private function resolveAllowMethods(string $requestedMethod): string

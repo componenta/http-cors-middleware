@@ -17,7 +17,8 @@ final readonly class Origin implements \Stringable
             return new self('null', true);
         }
 
-        if ($value === '' || trim($value) !== $value || str_contains($value, '@')) {
+        if ($value === '' || preg_match('/[\x00-\x20\x7f]/', $value) === 1
+            || str_contains($value, '@') || str_ends_with($value, ':')) {
             return null;
         }
 
@@ -45,6 +46,15 @@ final readonly class Origin implements \Stringable
 
         if (!self::validHost($host)) {
             return null;
+        }
+
+        if (str_starts_with($host, '[')) {
+            $binary = inet_pton(substr($host, 1, -1));
+            $normalized = $binary === false ? false : inet_ntop($binary);
+            if ($normalized === false) {
+                return null;
+            }
+            $host = '[' . $normalized . ']';
         }
 
         $port = $parsed['port'] ?? null;

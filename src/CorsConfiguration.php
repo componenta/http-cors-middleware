@@ -20,13 +20,13 @@ final readonly class CorsConfiguration
     /** @var list<string> */
     public array $exposedHeaders;
 
-    /** @var array<string, true> */
+    /** @var array<array-key, true> */
     private array $originIndex;
 
-    /** @var array<string, true> */
+    /** @var array<array-key, true> */
     private array $methodIndex;
 
-    /** @var array<string, true> */
+    /** @var array<array-key, true> */
     private array $headerIndex;
 
     /**

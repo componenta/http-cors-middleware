@@ -22,6 +22,7 @@ final class PolicyIndexTest extends TestCase
             self::assertNotNull($origin);
             self::assertTrue($config->allowsOrigin($origin));
         }
+        self::assertNull(Origin::parse('https://example.test:'));
         foreach (['http://example.test', 'https://example.test:8444', 'null'] as $value) {
             $origin = Origin::parse($value);
             self::assertNotNull($origin);
