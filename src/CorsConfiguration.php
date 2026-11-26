@@ -20,6 +20,15 @@ final readonly class CorsConfiguration
     /** @var list<string> */
     public array $exposedHeaders;
 
+    /** @var array<string, true> */
+    private array $originIndex;
+
+    /** @var array<string, true> */
+    private array $methodIndex;
+
+    /** @var array<string, true> */
+    private array $headerIndex;
+
     /**
      * @param array<array-key, mixed> $allowedOrigins
      * @param array<array-key, mixed> $allowedMethods
@@ -44,6 +53,10 @@ final readonly class CorsConfiguration
         $this->allowedMethods = self::normalizeMethods($allowedMethods);
         $this->allowedHeaders = self::normalizeFieldNames($allowedHeaders, 'allowed request headers');
         $this->exposedHeaders = self::normalizeFieldNames($exposedHeaders, 'exposed response headers');
+
+        $this->originIndex = array_fill_keys($this->allowedOrigins, true);
+        $this->methodIndex = array_fill_keys($this->allowedMethods, true);
+        $this->headerIndex = array_fill_keys($this->allowedHeaders, true);
 
         if ($allowCredentials) {
             foreach ($this->allowedOrigins as $origin) {
@@ -74,24 +87,12 @@ final readonly class CorsConfiguration
 
     public function allowsOrigin(Origin $origin): bool
     {
-        foreach ($this->allowedOrigins as $allowed) {
-            if ($allowed === '*') {
-                return !$origin->opaque;
-            }
-
-            $configured = Origin::parse($allowed);
-
-            if ($configured !== null && $configured->equals($origin)) {
-                return true;
-            }
-        }
-
-        return false;
+        return !$origin->opaque && (isset($this->originIndex['*']) || isset($this->originIndex[(string) $origin]));
     }
 
     public function hasOriginWildcard(): bool
     {
-        return in_array('*', $this->allowedOrigins, true);
+        return isset($this->originIndex['*']);
     }
 
     public function allowsMethod(string $method): bool
@@ -100,8 +101,7 @@ final readonly class CorsConfiguration
             return false;
         }
 
-        return in_array('*', $this->allowedMethods, true)
-            || in_array($method, $this->allowedMethods, true);
+        return isset($this->methodIndex['*']) || isset($this->methodIndex[$method]);
     }
 
     /**
@@ -115,8 +115,8 @@ final readonly class CorsConfiguration
             }
 
             if (
-                !in_array('*', $this->allowedHeaders, true)
-                && !in_array(strtolower($header), $this->allowedHeaders, true)
+                !isset($this->headerIndex['*'])
+                && !isset($this->headerIndex[strtolower($header)])
             ) {
                 return false;
             }

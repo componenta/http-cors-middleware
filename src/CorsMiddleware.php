@@ -215,6 +215,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         }
 
         $headers = [];
+        $seen = [];
 
         foreach (explode(',', $value) as $part) {
             $header = trim($part);
@@ -225,8 +226,9 @@ final readonly class CorsMiddleware implements MiddlewareInterface
 
             $header = strtolower($header);
 
-            if (!in_array($header, $headers, true)) {
+            if (!isset($seen[$header])) {
                 $headers[] = $header;
+                $seen[$header] = true;
             }
         }
 
@@ -245,6 +247,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
     private function addVary(ResponseInterface $response, string ...$headers): ResponseInterface
     {
         $current = [];
+        $seen = [];
 
         foreach ($response->getHeader('Vary') as $line) {
             foreach (explode(',', $line) as $part) {
@@ -258,13 +261,13 @@ final readonly class CorsMiddleware implements MiddlewareInterface
                     return $response->withHeader('Vary', '*');
                 }
 
-                if (!in_array(strtolower($value), array_map('strtolower', $current), true)) {
+                $key = strtolower($value);
+                if (!isset($seen[$key])) {
                     $current[] = $value;
+                    $seen[$key] = true;
                 }
             }
         }
-
-        $lower = array_map('strtolower', $current);
 
         foreach ($headers as $header) {
             $header = trim($header);
@@ -277,9 +280,10 @@ final readonly class CorsMiddleware implements MiddlewareInterface
                 return $response->withHeader('Vary', '*');
             }
 
-            if (!in_array(strtolower($header), $lower, true)) {
+            $key = strtolower($header);
+            if (!isset($seen[$key])) {
                 $current[] = $header;
-                $lower[] = strtolower($header);
+                $seen[$key] = true;
             }
         }
 
