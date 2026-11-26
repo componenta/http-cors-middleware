@@ -17,32 +17,17 @@ final readonly class Origin implements \Stringable
             return new self('null', true);
         }
 
-        if ($value === '' || preg_match('/[\x00-\x20\x7f]/', $value) === 1
-            || str_contains($value, '@') || str_ends_with($value, ':')) {
+        if (preg_match('~\A(https?)://(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+)(?::([0-9]{1,5}))?\z~iD', $value, $parts) !== 1) {
             return null;
         }
 
-        $parsed = parse_url($value);
-
-        if (
-            $parsed === false
-            || !isset($parsed['scheme'], $parsed['host'])
-            || isset($parsed['user'])
-            || isset($parsed['pass'])
-            || isset($parsed['path'])
-            || isset($parsed['query'])
-            || isset($parsed['fragment'])
-        ) {
-            return null;
-        }
-
-        $scheme = strtolower($parsed['scheme']);
+        $scheme = strtolower($parts[1]);
 
         if (!in_array($scheme, ['http', 'https'], true)) {
             return null;
         }
 
-        $host = strtolower($parsed['host']);
+        $host = strtolower($parts[2]);
 
         if (!self::validHost($host)) {
             return null;
@@ -57,9 +42,9 @@ final readonly class Origin implements \Stringable
             $host = '[' . $normalized . ']';
         }
 
-        $port = $parsed['port'] ?? null;
+        $port = isset($parts[3]) ? (int) $parts[3] : null;
 
-        if ($port === 0) {
+        if ($port !== null && ($port < 1 || $port > 65535)) {
             return null;
         }
 

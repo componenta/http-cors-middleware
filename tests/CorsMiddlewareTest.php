@@ -257,6 +257,27 @@ final class CorsMiddlewareTest extends TestCase
         self::assertSame('no-cache', $response->getHeaderLine('Pragma'));
     }
 
+    public function testPresentButEmptyPreflightFieldsAreRejected(): void
+    {
+        $middleware = $this->middleware(new CorsConfiguration(
+            allowedOrigins: ['https://app.example'],
+            allowPrivateNetwork: true,
+        ));
+        foreach ([
+            ['Origin' => '', 'Access-Control-Request-Method' => 'POST'],
+            ['Origin' => 'https://app.example', 'Access-Control-Request-Method' => ''],
+            ['Origin' => 'https://app.example', 'Access-Control-Request-Method' => 'POST', 'Access-Control-Request-Private-Network' => ''],
+        ] as $headers) {
+            $request = new ServerRequest('OPTIONS', 'https://api.example/data');
+            foreach ($headers as $name => $value) {
+                $request = $request->withHeader($name, $value);
+            }
+            $handler = new CorsHandler(new Response(500));
+            self::assertSame(403, $middleware->process($request, $handler)->getStatusCode());
+            self::assertSame(0, $handler->calls);
+        }
+    }
+
     public function testMalformedOriginIsRejectedOnPreflight(): void
     {
         $middleware = $this->middleware(new CorsConfiguration(allowedOrigins: ['*']));

@@ -53,8 +53,8 @@ final readonly class CorsMiddleware implements MiddlewareInterface
     private function isPreflightRequest(ServerRequestInterface $request): bool
     {
         return $request->getMethod() === 'OPTIONS'
-            && $request->getHeaderLine('Origin') !== ''
-            && $request->getHeaderLine('Access-Control-Request-Method') !== '';
+            && $request->hasHeader('Origin')
+            && $request->hasHeader('Access-Control-Request-Method');
     }
 
     private function handlePreflight(ServerRequestInterface $request): ResponseInterface
@@ -62,7 +62,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
         $vary = ['Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'];
         $privateNetwork = $request->getHeaderLine('Access-Control-Request-Private-Network');
 
-        if ($this->config->allowPrivateNetwork || $privateNetwork !== '') {
+        if ($this->config->allowPrivateNetwork || $request->hasHeader('Access-Control-Request-Private-Network')) {
             $vary[] = 'Access-Control-Request-Private-Network';
         }
 
@@ -86,7 +86,7 @@ final readonly class CorsMiddleware implements MiddlewareInterface
             return $this->preflightRejected($vary);
         }
 
-        if ($privateNetwork !== '') {
+        if ($request->hasHeader('Access-Control-Request-Private-Network')) {
             if ($privateNetwork !== 'true' || !$this->config->allowPrivateNetwork) {
                 return $this->preflightRejected($vary);
             }
